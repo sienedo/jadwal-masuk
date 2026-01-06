@@ -22,8 +22,20 @@
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "permissions": []
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED"
+      ],
+      "useNextNotificationsApi": true
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff",
+          "sounds": []
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "da859157-dbf1-4c1e-98c4-01182912788d"

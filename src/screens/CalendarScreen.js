@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { isOfficeDay, getNextOfficeDay } from '../utils/scheduleLogic';
 import { isHoliday, getHolidayName } from '../utils/holidays';
+import { testNotification, showTestNotificationNow } from '../services/notificationService';
 
 const CalendarScreen = ({ selectedTeam, onChangeTeam }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -165,7 +167,7 @@ const CalendarScreen = ({ selectedTeam, onChangeTeam }) => {
                   ? 'Hari Libur Nasional'
                   : isSelectedDateOfficeDay
                   ? 'Hari Kerja di Kantor'
-                  : 'Hari Libur / WFH'}
+                  : 'WFH'}
               </Text>
             </View>
           </View>
@@ -198,6 +200,39 @@ const CalendarScreen = ({ selectedTeam, onChangeTeam }) => {
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: '#d9e1e8' }]} />
             <Text style={styles.legendText}>Weekend</Text>
+          </View>
+        </View>
+
+        <View style={styles.testNotificationContainer}>
+          <Text style={styles.testNotificationTitle}>Test Notifikasi</Text>
+          <View style={styles.testButtonRow}>
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={async () => {
+                const result = await showTestNotificationNow(selectedTeam);
+                Alert.alert(
+                  result.success ? 'Berhasil' : 'Error',
+                  result.message
+                );
+              }}
+            >
+              <Text style={styles.testButtonText}>Test Sekarang</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={async () => {
+                // Test at 1:45 PM (13:45)
+                const result = await testNotification(13, 45, selectedTeam);
+                Alert.alert(
+                  result.success ? 'Berhasil' : 'Error',
+                  result.success 
+                    ? `Notifikasi dijadwalkan untuk ${result.scheduledTime}`
+                    : result.message
+                );
+              }}
+            >
+              <Text style={styles.testButtonText}>Test 13:45</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -348,6 +383,41 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 14,
     color: '#666',
+  },
+  testNotificationContainer: {
+    backgroundColor: '#fff',
+    marginHorizontal: 15,
+    marginBottom: 30,
+    padding: 20,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  testNotificationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  testButtonRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  testButton: {
+    flex: 1,
+    backgroundColor: '#4A90E2',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
