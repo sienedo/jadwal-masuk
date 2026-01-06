@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { isOfficeDay } from '../utils/scheduleLogic';
 
-// Configure notification handler
+// Konfigurasi handler notifikasi
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -12,7 +12,7 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Request notification permissions
+ * Minta izin notifikasi
  */
 export const requestNotificationPermissions = async () => {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -28,7 +28,7 @@ export const requestNotificationPermissions = async () => {
     return false;
   }
 
-  // Configure notification channel for Android
+  // Konfigurasi channel Android
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('reminder', {
       name: 'Reminder Notifications',
@@ -43,101 +43,45 @@ export const requestNotificationPermissions = async () => {
 };
 
 /**
- * Cancel all scheduled notifications
+ * Batalkan semua notifikasi terjadwal
  */
 export const cancelAllNotifications = async () => {
   await Notifications.cancelAllScheduledNotificationsAsync();
 };
 
 /**
- * Schedule daily reminder notification at 6 AM
- * Schedules notifications only for office days in the next 90 days
+ * Jadwalkan notifikasi jam 06:00 hanya pada hari kerja kantor
+ * untuk tim yang dipilih (Tim A / Tim B) untuk 90 hari ke depan.
  */
 export const scheduleDailyReminder = async (team) => {
-  // Cancel existing notifications first
+  // Hapus semua jadwal lama
   await cancelAllNotifications();
 
-  if (!team) {
-    return;
-  }
+  if (!team) return;
 
-  // Request permissions
   const hasPermission = await requestNotificationPermissions();
-  if (!hasPermission) {
-    return;
-  }
+  if (!hasPermission) return;
 
-  // Schedule notifications for office days in the next 90 days
+  const now = new Date();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
+  const maxDays = 90; // 3 bulan ke depan
   let scheduledCount = 0;
-  const maxDays = 90; // Schedule for next 90 days
-  
+
   for (let i = 0; i < maxDays; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(today.getDate() + i);
-    
-    if (isOfficeDay(checkDate, team)) {
-      // Schedule notification for this office day at 6:00 AM
-      const notificationDate = new Date(checkDate);
-      notificationDate.setHours(6, 0, 0, 0);
-      
-      // Only schedule if the date is in the future
-      if (notificationDate > new Date()) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Jadwal Masuk',
-            body: 'Hari ini kekantor',
-            sound: true,
-            priority: Notifications.AndroidNotificationPriority.HIGH,
-            data: { team, date: checkDate.toISOString() },
-          },
-          trigger: notificationDate,
-          identifier: `reminder-${checkDate.toISOString().split('T')[0]}`,
-        });
-        scheduledCount++;
-      }
-    }
-  }
-  
-  console.log(`Scheduled ${scheduledCount} reminder notifications for office days`);
-  
-  // Also schedule a recurring daily notification that will reschedule itself
-  // This ensures we always have notifications scheduled
-  const dailyTrigger = {
-    hour: 6,
-    minute: 0,
-    repeats: true,
-  };
-  
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Jadwal Masuk',
-      body: 'Hari ini kekantor',
-      sound: true,
-      priority: Notifications.AndroidNotificationPriority.HIGH,
-      data: { team, isDailyCheck: true },
-    },
-    trigger: dailyTrigger,
-    identifier: 'daily-reminder-check',
-  });
-};
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
 
-/**
- * Check if today is an office day and show notification if needed
- * This is called when notification is received
- */
-export const checkAndShowReminder = async (team) => {
-  if (!team) {
-    return;
-  }
+    // Hanya hari kerja kantor sesuai tim (sudah exclude weekend & libur)
+    if (!isOfficeDay(date, team)) continue;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Reset time to start of day
+    const notificationDate = new Date(date);
+    notificationDate.setHours(6, 0, 0, 0); // jam 06:00 lokal
 
-  if (isOfficeDay(today, team)) {
-    // Show notification immediately
+    // Jangan jadwalkan yang sudah lewat
+    if (notificationDate <= now) continue;
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Jadwal Masuk',
@@ -145,76 +89,12 @@ export const checkAndShowReminder = async (team) => {
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
-      trigger: null, // Show immediately
+      trigger: notificationDate,
     });
-  }
-};
 
-/**
- * Test notification - schedule a notification at a specific time
- * @param {number} hours - Hour (0-23)
- * @param {number} minutes - Minute (0-59)
- * @param {string} team - Team A or B
- */
-export const testNotification = async (hours, minutes, team) => {
-  // Request permissions first
-  const hasPermission = await requestNotificationPermissions();
-  if (!hasPermission) {
-    return { success: false, message: 'Notification permissions not granted' };
+    scheduledCount++;
   }
 
-  // Calculate the test time
-  const now = new Date();
-  const testTime = new Date(now);
-  testTime.setHours(hours, minutes, 0, 0);
-
-  // If the time has passed today, schedule for tomorrow
-  if (testTime <= now) {
-    testTime.setDate(testTime.getDate() + 1);
-  }
-
-  // Schedule test notification
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Jadwal Masuk (Test)',
-      body: 'Hari ini kekantor',
-      sound: true,
-      priority: Notifications.AndroidNotificationPriority.HIGH,
-      data: { team, isTest: true },
-    },
-    trigger: testTime,
-    identifier: 'test-notification',
-  });
-
-  const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-  return { 
-    success: true, 
-    message: `Test notification scheduled for ${timeString}`,
-    scheduledTime: testTime.toLocaleString('id-ID')
-  };
-};
-
-/**
- * Show notification immediately (for testing)
- */
-export const showTestNotificationNow = async (team) => {
-  const hasPermission = await requestNotificationPermissions();
-  if (!hasPermission) {
-    return { success: false, message: 'Notification permissions not granted' };
-  }
-
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Jadwal Masuk (Test)',
-      body: 'Hari ini kekantor',
-      sound: true,
-      priority: Notifications.AndroidNotificationPriority.HIGH,
-      data: { team, isTest: true },
-    },
-    trigger: null, // Show immediately
-    identifier: 'test-notification-now',
-  });
-
-  return { success: true, message: 'Test notification shown' };
+  console.log(`Scheduled ${scheduledCount} reminder notifications for office days`);
 };
 
