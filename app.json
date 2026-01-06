@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Jadwal Masuk",
+    "slug": "jadwal-masuk-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jadwalmasuk.app"
+    },
+    "android": {
+      "package": "com.jadwalmasuk.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": []
+    },
+    "extra": {
+      "eas": {
+        "projectId": "da859157-dbf1-4c1e-98c4-01182912788d"
+      }
+    }
+  }
+}
